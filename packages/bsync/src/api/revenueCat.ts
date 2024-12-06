@@ -50,8 +50,7 @@ const webhookHandler =
     }
 
     try {
-      const entitlements =
-        await revenueCatClient.getEntitlementIdentifiers(actorDid)
+      const entitlements = await revenueCatClient.getEntitlements(actorDid)
 
       const id = await addPurchaseOperation(ctx.db, actorDid, entitlements)
 

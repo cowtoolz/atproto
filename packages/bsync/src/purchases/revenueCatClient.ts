@@ -36,13 +36,13 @@ export class RevenueCatClient {
     return res.json() as T
   }
 
-  private getSubscriber(did: string): Promise<RcGetSubscriberResponse> {
+  getSubscriber(did: string): Promise<RcGetSubscriberResponse> {
     return this.fetch<RcGetSubscriberResponse>(
       `/subscribers/${encodeURIComponent(did)}`,
     )
   }
 
-  async getEntitlementIdentifiers(did: string): Promise<string[]> {
+  async getEntitlements(did: string): Promise<string[]> {
     const { subscriber } = await this.getSubscriber(did)
 
     const now = Date.now()

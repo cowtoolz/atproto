@@ -6,6 +6,7 @@ import addMuteOperation from './add-mute-operation'
 import scanMuteOperations from './scan-mute-operations'
 import addNotifOperation from './add-notif-operation'
 import scanNotifOperations from './scan-notif-operations'
+import addPurchaseOperation from './add-purchase-operation'
 
 export default (ctx: AppContext) => (router: ConnectRouter) => {
   return router.service(Service, {
@@ -13,6 +14,7 @@ export default (ctx: AppContext) => (router: ConnectRouter) => {
     ...scanMuteOperations(ctx),
     ...addNotifOperation(ctx),
     ...scanNotifOperations(ctx),
+    ...addPurchaseOperation(ctx),
     async ping() {
       const { db } = ctx
       await sql`select 1`.execute(db.db)

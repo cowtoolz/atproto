@@ -138,6 +138,14 @@ const createRoutes = (db: Database) => (router: ConnectRouter) =>
       throw new Error('not implemented')
     },
 
+    async addPurchaseOperation() {
+      throw new Error('not implemented')
+    },
+
+    async getActiveSubscriptions() {
+      throw new Error('not implemented')
+    },
+
     async ping() {
       return {}
     },

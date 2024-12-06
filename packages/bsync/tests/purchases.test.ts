@@ -1,17 +1,25 @@
 import http from 'node:http'
 import { once } from 'node:events'
 import getPort from 'get-port'
-import { BsyncService, Database, envToCfg } from '../src'
+import {
+  authWithApiKey,
+  BsyncService,
+  createClient,
+  Database,
+  envToCfg,
+} from '../src'
 import {
   RcEntitlement,
   RcEventBody,
   RcGetSubscriberResponse,
 } from '../src/purchases'
+import { Code, ConnectError } from '@connectrpc/connect'
 
 const revenueCatWebhookAuthorization = 'Bearer any-token'
 
 describe('purchases', () => {
   let bsync: BsyncService
+  let client: BsyncClient
   let bsyncUrl: string
 
   const actorDid = 'did:example:a'
@@ -53,6 +61,11 @@ describe('purchases', () => {
 
     await bsync.ctx.db.migrateToLatestOrThrow()
     await bsync.start()
+    client = createClient({
+      httpVersion: '1.1',
+      baseUrl: `http://localhost:${bsync.ctx.cfg.service.port}`,
+      interceptors: [authWithApiKey('key-1')],
+    })
   })
 
   afterAll(async () => {
@@ -178,6 +191,122 @@ describe('purchases', () => {
       })
 
       await callWebhook(bsyncUrl, buildWebhookBody(actorDid))
+
+      const op = await bsync.ctx.db.db
+        .selectFrom('purchase_op')
+        .selectAll()
+        .where('actorDid', '=', actorDid)
+        .orderBy('id', 'desc')
+        .executeTakeFirstOrThrow()
+
+      expect(op).toMatchObject({
+        id: expect.any(Number),
+        actorDid,
+        entitlements: [],
+        createdAt: expect.any(Date),
+      })
+
+      await expect(
+        bsync.ctx.db.db
+          .selectFrom('purchase_item')
+          .selectAll()
+          .where('actorDid', '=', actorDid)
+          .executeTakeFirstOrThrow(),
+      ).resolves.toMatchObject({
+        actorDid,
+        entitlements: [],
+        fromId: op.id,
+      })
+    })
+  })
+
+  describe('addPurchaseOperation', () => {
+    it('fails on bad inputs', async () => {
+      await expect(
+        client.addPurchaseOperation({
+          actorDid: 'invalid',
+        }),
+      ).rejects.toEqual(
+        new ConnectError('actor_did must be a valid did', Code.InvalidArgument),
+      )
+    })
+
+    it('stores valid entitlements from the API response, excluding expired', async () => {
+      revenueCatApiMock.mockReturnValueOnce({
+        subscriber: {
+          entitlements: { entitlementExpired },
+        },
+      })
+
+      await client.addPurchaseOperation({ actorDid })
+
+      const op0 = await bsync.ctx.db.db
+        .selectFrom('purchase_op')
+        .selectAll()
+        .where('actorDid', '=', actorDid)
+        .orderBy('id', 'desc')
+        .executeTakeFirstOrThrow()
+
+      expect(op0).toMatchObject({
+        id: expect.any(Number),
+        actorDid,
+        entitlements: [],
+        createdAt: expect.any(Date),
+      })
+
+      await expect(
+        bsync.ctx.db.db
+          .selectFrom('purchase_item')
+          .selectAll()
+          .where('actorDid', '=', actorDid)
+          .executeTakeFirstOrThrow(),
+      ).resolves.toMatchObject({
+        actorDid,
+        entitlements: [],
+        fromId: op0.id,
+      })
+
+      revenueCatApiMock.mockReturnValueOnce({
+        subscriber: {
+          entitlements: { entitlementValid, entitlementExpired },
+        },
+      })
+
+      await client.addPurchaseOperation({ actorDid })
+
+      const op1 = await bsync.ctx.db.db
+        .selectFrom('purchase_op')
+        .selectAll()
+        .where('actorDid', '=', actorDid)
+        .orderBy('id', 'desc')
+        .executeTakeFirstOrThrow()
+
+      expect(op1).toMatchObject({
+        id: expect.any(Number),
+        actorDid,
+        entitlements: ['entitlementValid'],
+        createdAt: expect.any(Date),
+      })
+
+      await expect(
+        bsync.ctx.db.db
+          .selectFrom('purchase_item')
+          .selectAll()
+          .where('actorDid', '=', actorDid)
+          .executeTakeFirstOrThrow(),
+      ).resolves.toMatchObject({
+        actorDid,
+        entitlements: ['entitlementValid'],
+        fromId: op1.id,
+      })
+    })
+
+    it('sets empty array in the cache if no entitlements are present at all', async () => {
+      revenueCatApiMock.mockReturnValue({
+        subscriber: { entitlements: {} },
+      })
+
+      await client.addPurchaseOperation({ actorDid })
 
       const op = await bsync.ctx.db.db
         .selectFrom('purchase_op')

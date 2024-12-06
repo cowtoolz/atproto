@@ -161,6 +161,9 @@ import * as AppBskyNotificationListNotifications from './types/app/bsky/notifica
 import * as AppBskyNotificationPutPreferences from './types/app/bsky/notification/putPreferences'
 import * as AppBskyNotificationRegisterPush from './types/app/bsky/notification/registerPush'
 import * as AppBskyNotificationUpdateSeen from './types/app/bsky/notification/updateSeen'
+import * as AppBskyPurchaseGetActiveSubscriptions from './types/app/bsky/purchase/getActiveSubscriptions'
+import * as AppBskyPurchaseGetPaidFeatures from './types/app/bsky/purchase/getPaidFeatures'
+import * as AppBskyPurchaseRefreshCache from './types/app/bsky/purchase/refreshCache'
 import * as AppBskyRichtextFacet from './types/app/bsky/richtext/facet'
 import * as AppBskyUnspeccedDefs from './types/app/bsky/unspecced/defs'
 import * as AppBskyUnspeccedGetConfig from './types/app/bsky/unspecced/getConfig'
@@ -388,6 +391,9 @@ export * as AppBskyNotificationListNotifications from './types/app/bsky/notifica
 export * as AppBskyNotificationPutPreferences from './types/app/bsky/notification/putPreferences'
 export * as AppBskyNotificationRegisterPush from './types/app/bsky/notification/registerPush'
 export * as AppBskyNotificationUpdateSeen from './types/app/bsky/notification/updateSeen'
+export * as AppBskyPurchaseGetActiveSubscriptions from './types/app/bsky/purchase/getActiveSubscriptions'
+export * as AppBskyPurchaseGetPaidFeatures from './types/app/bsky/purchase/getPaidFeatures'
+export * as AppBskyPurchaseRefreshCache from './types/app/bsky/purchase/refreshCache'
 export * as AppBskyRichtextFacet from './types/app/bsky/richtext/facet'
 export * as AppBskyUnspeccedDefs from './types/app/bsky/unspecced/defs'
 export * as AppBskyUnspeccedGetConfig from './types/app/bsky/unspecced/getConfig'
@@ -1486,6 +1492,7 @@ export class AppBskyNS {
   graph: AppBskyGraphNS
   labeler: AppBskyLabelerNS
   notification: AppBskyNotificationNS
+  purchase: AppBskyPurchaseNS
   richtext: AppBskyRichtextNS
   unspecced: AppBskyUnspeccedNS
   video: AppBskyVideoNS
@@ -1498,6 +1505,7 @@ export class AppBskyNS {
     this.graph = new AppBskyGraphNS(client)
     this.labeler = new AppBskyLabelerNS(client)
     this.notification = new AppBskyNotificationNS(client)
+    this.purchase = new AppBskyPurchaseNS(client)
     this.richtext = new AppBskyRichtextNS(client)
     this.unspecced = new AppBskyUnspeccedNS(client)
     this.video = new AppBskyVideoNS(client)
@@ -3019,6 +3027,50 @@ export class AppBskyNotificationNS {
   ): Promise<AppBskyNotificationUpdateSeen.Response> {
     return this._client.call(
       'app.bsky.notification.updateSeen',
+      opts?.qp,
+      data,
+      opts,
+    )
+  }
+}
+
+export class AppBskyPurchaseNS {
+  _client: XrpcClient
+
+  constructor(client: XrpcClient) {
+    this._client = client
+  }
+
+  getActiveSubscriptions(
+    params?: AppBskyPurchaseGetActiveSubscriptions.QueryParams,
+    opts?: AppBskyPurchaseGetActiveSubscriptions.CallOptions,
+  ): Promise<AppBskyPurchaseGetActiveSubscriptions.Response> {
+    return this._client.call(
+      'app.bsky.purchase.getActiveSubscriptions',
+      params,
+      undefined,
+      opts,
+    )
+  }
+
+  getPaidFeatures(
+    params?: AppBskyPurchaseGetPaidFeatures.QueryParams,
+    opts?: AppBskyPurchaseGetPaidFeatures.CallOptions,
+  ): Promise<AppBskyPurchaseGetPaidFeatures.Response> {
+    return this._client.call(
+      'app.bsky.purchase.getPaidFeatures',
+      params,
+      undefined,
+      opts,
+    )
+  }
+
+  refreshCache(
+    data?: AppBskyPurchaseRefreshCache.InputSchema,
+    opts?: AppBskyPurchaseRefreshCache.CallOptions,
+  ): Promise<AppBskyPurchaseRefreshCache.Response> {
+    return this._client.call(
+      'app.bsky.purchase.refreshCache',
       opts?.qp,
       data,
       opts,
